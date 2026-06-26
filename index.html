@@ -5,6 +5,42 @@
       window.onerror = function(msg) {
         if (msg === 'Script error.') return true;
       };
+      
+      // Force refresh on new version to clear WebViews and PWA caching of old navigation code
+      (function() {
+        const APP_BUILD_VER = '1.0.8';
+        try {
+          const storedVer = localStorage.getItem('qran_app_build_version');
+          if (storedVer !== APP_BUILD_VER) {
+            localStorage.setItem('qran_app_build_version', APP_BUILD_VER);
+            
+            // Unregister Service Workers
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(regs) {
+                for (var i = 0; i < regs.length; i++) {
+                  regs[i].unregister();
+                }
+              });
+            }
+            
+            // Delete Cache API caches
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                for (var i = 0; i < names.length; i++) {
+                  caches.delete(names[i]);
+                }
+              });
+            }
+            
+            // Force clean reload after caches are cleared
+            setTimeout(function() {
+              window.location.reload(true);
+            }, 300);
+          }
+        } catch (e) {
+          console.error('Cache buster error:', e);
+        }
+      })();
     </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='50' font-family='Amiri Quran, serif' font-size='90' text-anchor='middle' dominant-baseline='central' fill='%2322c55e'%3E۞%3C/text%3E%3C/svg%3E" />

@@ -1,7 +1,7 @@
 // service-worker.js
 
-const STATIC_CACHE_NAME = 'qran-top-static-v21'; // Version bump to force update
-const DATA_CACHE_NAME = 'qran-top-data-v13';
+const STATIC_CACHE_NAME = 'qran-top-static-v25'; // Version bump to force update
+const DATA_CACHE_NAME = 'qran-top-data-v17';
 
 // Core data files that are essential for the app to work offline.
 const CORE_DATA_URLS = [
