@@ -61,8 +61,15 @@ const ExternalLinkModal: React.FC<ExternalLinkModalProps> = ({ url, onClose }) =
     }
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in" dir="rtl">
-            <div className="w-full max-w-md bg-surface border border-border-default rounded-2xl shadow-2xl overflow-hidden transform scale-100 transition-transform duration-300">
+        <div 
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in" 
+            dir="rtl"
+            onClick={onClose}
+        >
+            <div 
+                className="w-full max-w-md bg-surface border border-border-default rounded-2xl shadow-2xl overflow-hidden transform scale-100 transition-transform duration-300"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* Header */}
                 <div className="p-5 border-b border-border-subtle bg-surface-subtle flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
