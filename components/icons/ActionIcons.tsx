@@ -116,3 +116,9 @@ export const ArrowsPointingInIcon = ({ className }: { className?: string }) => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v5.75c0 .414-.336.75-.75.75H2.5m13.5 0h5.75c.414 0 .75-.336.75-.75V4.5m0 13.5v-5.75c0-.414-.336-.75-.75-.75H16m-5.5 0H2.5c-.414 0-.75.336-.75.75V20.25" />
     </svg>
 );
+
+export const GooglePlayIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className || "w-6 h-6"}>
+        <path d="M5.244 2.244A2.302 2.302 0 0 0 5 3.257v17.486c0 .385.111.751.244 1.013l9.406-9.406L5.244 2.244zM15.837 12.5L5.756 2.419C6.012 2.156 6.362 2 6.75 2c.462 0 .888.225 1.156.581l10.375 5.925L15.837 12.5zm1.531-1.531l2.756 1.575c.425.244.425.669 0 .913l-2.756 1.575L15.112 12.5l2.256-1.531zm-1.531 3.031L8.312 21.469C8.044 21.825 7.619 22 7.156 22c-.387 0-.737-.156-.994-.419L15.837 12.5l-.001 1.5z" />
+    </svg>
+);
