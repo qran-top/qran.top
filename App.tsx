@@ -20,6 +20,7 @@ import UpdateNotification from './components/UpdateNotification';
 import { ArrowUpIcon, RefreshIcon, WifiOffIcon } from './components/icons';
 import Header from './components/Header';
 import { ALL_AUDIO_EDITIONS } from './data/audioEditions';
+import ExternalLinkModal from './components/ExternalLinkModal';
 
 
 const KHATMIYAH_AUDIO_PROGRESS_KEY = 'qran_khatmiyah_audio_progress';
@@ -66,6 +67,18 @@ const App: React.FC = () => {
     const [isSearching, setIsSearching] = useState<boolean>(false);
     const [showScroll, setShowScroll] = useState(false);
     const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+    const [externalLinkUrl, setExternalLinkUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        const handleShowModal = (e: Event) => {
+            const customEvent = e as CustomEvent<{ url: string }>;
+            if (customEvent.detail?.url) {
+                setExternalLinkUrl(customEvent.detail.url);
+            }
+        };
+        window.addEventListener('show-external-link-modal', handleShowModal);
+        return () => window.removeEventListener('show-external-link-modal', handleShowModal);
+    }, []);
     
     const [audioKhatmiyahProgress, setAudioKhatmiyahProgress] = useState<{ ayahNumber: number } | null>(() => {
         try {
@@ -227,6 +240,7 @@ const App: React.FC = () => {
                         isAudioPlayerVisible={!!playbackInfo}
                     />}
                     {itemToSave && <SaveItemModal item={itemToSave} collections={collections} onClose={() => setItemToSave(null)} onSave={handleConfirmSave} />}
+                    {externalLinkUrl && <ExternalLinkModal url={externalLinkUrl} onClose={() => setExternalLinkUrl(null)} />}
                     {playbackInfo && !isAudioKhatmiyahPage && <AudioPlayerBar 
                         playlist={playbackInfo.playlist} currentIndex={playbackInfo.currentIndex}
                         isPlaying={playbackInfo.isPlaying} isLoading={!!playbackInfo?.trigger}
