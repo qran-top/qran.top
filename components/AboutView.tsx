@@ -4,6 +4,7 @@ import {
     UserCircleIcon, MenuIcon, SpeakerWaveIcon, BookmarkIcon, SparklesIcon, CogIcon, 
     ChatBubbleIcon, MicrophoneIcon, MoonIcon 
 } from './icons';
+import { openExternalLink } from '../utils/navigation';
 
 const AboutView: React.FC = () => {
     
@@ -95,7 +96,7 @@ const AboutView: React.FC = () => {
                         <p className="text-text-secondary">الحصول على المفتاح مجاني ضمن الباقة التي توفرها Google. يتم حفظ المفتاح بشكل آمن في متصفحك فقط ولا يتم إرساله إلى خوادمنا.</p>
                         <h3 className="text-lg font-bold text-text-primary pt-2">خطوات الحصول على المفتاح:</h3>
                         <ol className="list-decimal pr-6 text-text-secondary space-y-2">
-                            <li>اذهب إلى <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary-text hover:underline">Google AI Studio</a>.</li>
+                            <li>اذهب إلى <a href="https://aistudio.google.com/app/apikey" onClick={(e) => openExternalLink(e, "https://aistudio.google.com/app/apikey")} target="_blank" rel="noopener noreferrer" className="text-primary-text hover:underline">Google AI Studio</a>.</li>
                             <li>قم بتسجيل الدخول بحساب Google الخاص بك، ثم انقر على زر "Create API key".</li>
                             <li>سيظهر لك مفتاح طويل. انقر على أيقونة النسخ بجانبه.</li>
                             <li>الصق المفتاح في التطبيق عندما يُطلب منك، أو أضفه من <strong>الإعدادات &larr; الذكاء الاصطناعي</strong>.</li>
@@ -111,8 +112,8 @@ const AboutView: React.FC = () => {
                     <div className="bg-surface p-6 rounded-lg shadow-sm border border-border-default space-y-4">
                         <p className="text-text-secondary">نحن نؤمن بالشفافية الكاملة، لذا نوضح مصادر البيانات التي يعتمد عليها التطبيق:</p>
                         <ul className="list-disc pr-5 space-y-2 text-sm text-text-muted">
-                            <li><strong>النص القرآني:</strong> نعتمد على النصوص الموثوقة من واجهة برمجة التطبيقات العامة <a href="https://alquran.cloud/api" target="_blank" rel="noopener noreferrer" className="text-primary-text hover:underline">alquran.cloud</a>.</li>
-                            <li><strong>التلاوات الصوتية:</strong> مصدرها شبكات توصيل محتوى عامة ومتاحة للجميع مثل <a href="https://everyayah.com/" target="_blank" rel="noopener noreferrer" className="text-primary-text hover:underline">everyayah.com</a> و <a href="https://cdn.islamic.network/" target="_blank" rel="noopener noreferrer" className="text-primary-text hover:underline">islamic.network</a>.</li>
+                            <li><strong>النص القرآني:</strong> نعتمد على النصوص الموثوقة من واجهة برمجة التطبيقات العامة <a href="https://alquran.cloud/api" onClick={(e) => openExternalLink(e, "https://alquran.cloud/api")} target="_blank" rel="noopener noreferrer" className="text-primary-text hover:underline">alquran.cloud</a>.</li>
+                            <li><strong>التلاوات الصوتية:</strong> مصدرها شبكات توصيل محتوى عامة ومتاحة للجميع مثل <a href="https://everyayah.com/" onClick={(e) => openExternalLink(e, "https://everyayah.com/")} target="_blank" rel="noopener noreferrer" className="text-primary-text hover:underline">everyayah.com</a> و <a href="https://cdn.islamic.network/" onClick={(e) => openExternalLink(e, "https://cdn.islamic.network/")} target="_blank" rel="noopener noreferrer" className="text-primary-text hover:underline">islamic.network</a>.</li>
                         </ul>
                         <p className="text-xs text-text-subtle">يعمل التطبيق كوسيط لعرض هذه البيانات، ودقتها وموثوقيتها تقع على عاتق مصادرها الأصلية. لمزيد من التفاصيل، يرجى مراجعة <a href="#/privacy-policy" onClick={handleLinkClick} className="text-primary-text hover:underline">سياسة الخصوصية</a>.</p>
                     </div>
@@ -123,9 +124,9 @@ const AboutView: React.FC = () => {
                      <div className="inline-flex flex-col items-center gap-2">
                         <UserCircleIcon className="w-16 h-16 text-text-muted"/>
                         <p className="font-semibold text-text-secondary">
-                            تم تطوير هذا التطبيق بواسطة <a href="https://aboharon.com" target="_blank" rel="noopener noreferrer" className="text-primary-text font-bold hover:underline">aboharon.com</a> بمساعدة Google Studio.
+                            تم تطوير هذا التطبيق بواسطة <a href="https://aboharon.com" onClick={(e) => openExternalLink(e, "https://aboharon.com")} target="_blank" rel="noopener noreferrer" className="text-primary-text font-bold hover:underline">aboharon.com</a> بمساعدة Google Studio.
                         </p>
-                        <a href="https://t.me/aboharon_com" target="_blank" rel="noopener noreferrer" className="text-sm text-primary-text hover:underline">
+                        <a href="https://t.me/aboharon_com" onClick={(e) => openExternalLink(e, "https://t.me/aboharon_com")} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-text hover:underline">
                             للتواصل والإبلاغ عن أي ملاحظات
                         </a>
                     </div>

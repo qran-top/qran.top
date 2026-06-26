@@ -1,5 +1,6 @@
 import React from 'react';
 import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, UserCircleIcon, MicrophoneIcon, ChartBarIcon, InformationCircleIcon, GooglePlayIcon } from './icons';
+import { openExternalLink } from '../utils/navigation';
 
 interface SidePanelProps {
     isOpen: boolean;
@@ -56,6 +57,7 @@ const SidePanel: React.FC<SidePanelProps> = ({
                                 
                                 <a
                                     href="https://play.google.com/store/apps/details?id=com.dev12three.qrantop&pli=1"
+                                    onClick={(e) => openExternalLink(e, "https://play.google.com/store/apps/details?id=com.dev12three.qrantop&pli=1")}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-3 p-2.5 rounded-lg text-base transition-colors text-text-secondary hover:bg-surface-hover"
@@ -77,6 +79,7 @@ const SidePanel: React.FC<SidePanelProps> = ({
                             </div>
                             <a 
                                 href="https://play.google.com/store/apps/details?id=com.dev12three.qrantop&pli=1"
+                                onClick={(e) => openExternalLink(e, "https://play.google.com/store/apps/details?id=com.dev12three.qrantop&pli=1")}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-[#0f172a] hover:bg-[#1e293b] text-white rounded-lg text-xs font-medium transition-colors duration-200 shadow-sm"
@@ -95,6 +98,7 @@ const SidePanel: React.FC<SidePanelProps> = ({
                          <div className="flex items-center justify-between gap-2">
                             <a 
                                 href="https://aboharon.com" 
+                                onClick={(e) => openExternalLink(e, "https://aboharon.com")}
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className="p-2 bg-surface-subtle text-text-secondary rounded-full hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"

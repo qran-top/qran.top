@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { openExternalLink } from '../utils/navigation';
 
 const privacyStyles = `
     .qran-top-privacy-body {
@@ -173,7 +174,7 @@ const PrivacyPolicyView: React.FC = () => {
 
                         <section>
                             <h2>اتصل بنا</h2>
-                            <p>إذا كان لديك أي أسئلة حول سياسة الخصوصية، يرجى التواصل معنا عبر تلغرام: <a href="https://t.me/aboharon_com" target="_blank" rel="noopener noreferrer">t.me/aboharon_com</a>.</p>
+                            <p>إذا كان لديك أي أسئلة حول سياسة الخصوصية، يرجى التواصل معنا عبر تلغرام: <a href="https://t.me/aboharon_com" onClick={(e) => openExternalLink(e, "https://t.me/aboharon_com")} target="_blank" rel="noopener noreferrer">t.me/aboharon_com</a>.</p>
                         </section>
                     </div>
                     
@@ -219,13 +220,13 @@ const PrivacyPolicyView: React.FC = () => {
                         
                         <section>
                             <h2>Contact Us</h2>
-                            <p>If you have any questions about this Privacy Policy, please contact us via Telegram: <a href="https://t.me/aboharon_com" target="_blank" rel="noopener noreferrer">t.me/aboharon_com</a>.</p>
+                            <p>If you have any questions about this Privacy Policy, please contact us via Telegram: <a href="https://t.me/aboharon_com" onClick={(e) => openExternalLink(e, "https://t.me/aboharon_com")} target="_blank" rel="noopener noreferrer">t.me/aboharon_com</a>.</p>
                         </section>
                     </div>
 
                     <footer>
                         <a href="#/" onClick={handleHomeClick}>العودة إلى التطبيق الرئيسي</a>
-                        <p>&copy; 2024 - <a href="https://aboharon.com" target="_blank" rel="noopener noreferrer">aboharon.com</a>. All rights reserved.</p>
+                        <p>&copy; 2024 - <a href="https://aboharon.com" onClick={(e) => openExternalLink(e, "https://aboharon.com")} target="_blank" rel="noopener noreferrer">aboharon.com</a>. All rights reserved.</p>
                     </footer>
                 </div>
             </div>
