@@ -103,10 +103,11 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
         }
 
         if (pageSurahs.length > 0) {
+            const queryAyah = queryParams.get('ayah') ? parseInt(queryParams.get('ayah')!, 10) : null;
             return <SurahDetailView 
                 surah={pageSurahs[0]}
                 pageSurahs={pageSurahs}
-                highlightAyahNumber={startAyahInFirstSurah}
+                highlightAyahNumber={queryAyah !== null ? queryAyah : startAyahInFirstSurah}
                 onWordClick={handleSearch}
                 onSaveAyah={handleSaveItem}
                 onSearchByAyahNumber={handleSearchByAyahNumber}

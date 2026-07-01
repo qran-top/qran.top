@@ -3,6 +3,8 @@ import type { SurahReference } from '../types';
 import SurahListItem from './SurahListItem';
 import IndexItem from './IndexItem';
 import { BookOpenIcon, QueueListIcon, JuzOneIcon, PaperIcon } from './icons';
+import { safeLocalStorage } from '../utils/storage';
+import { formatSurahNameForDisplay } from '../utils/text';
 
 interface HomeViewProps {
   surahList: SurahReference[];
@@ -14,6 +16,18 @@ type ActiveTab = 'surahs' | 'juz' | 'hizbs' | 'pages';
 
 const HomeView: React.FC<HomeViewProps> = ({ surahList, juzList, hizbList }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('surahs');
+
+  const [lastRead] = useState(() => {
+    try {
+      const stored = safeLocalStorage.getItem('qran_last_read_position');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {
+      console.error("Failed to parse last read position", e);
+    }
+    return null;
+  });
+
+  const lastReadSurah = lastRead && surahList.find(s => s.number === lastRead.surahNumber);
 
   const TabButton: React.FC<{ tab: ActiveTab; label: string; icon: React.ReactNode }> = ({ tab, label, icon }) => (
     <button
@@ -80,6 +94,32 @@ const HomeView: React.FC<HomeViewProps> = ({ surahList, juzList, hizbList }) => 
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 animate-fade-in">
+      {lastRead && (
+        <div className="mb-6 bg-primary/10 border border-primary/20 rounded-lg p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all hover:bg-primary/15 animate-fade-in">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-primary text-white rounded-full">
+              <BookOpenIcon className="w-6 h-6" />
+            </div>
+            <div className="text-right">
+              <h3 className="text-lg font-bold text-primary">مواصلة القراءة</h3>
+              <p className="text-sm text-text-secondary mt-1">
+                {lastRead.browsingMode === 'page' ? (
+                  <>الصفحة <span className="font-bold">{lastRead.pageNumber}</span> • سورة <span className="font-bold">{lastReadSurah ? formatSurahNameForDisplay(lastReadSurah.name) : lastRead.surahNumber}</span> (الآية {lastRead.ayahNumber})</>
+                ) : (
+                  <>سورة <span className="font-bold">{lastReadSurah ? formatSurahNameForDisplay(lastReadSurah.name) : lastRead.surahNumber}</span> • الآية <span className="font-bold">{lastRead.ayahNumber}</span></>
+                )}
+              </p>
+            </div>
+          </div>
+          <a
+            href={lastRead.browsingMode === 'page' ? `#/page/${lastRead.pageNumber}?ayah=${lastRead.ayahNumber}` : `#/surah/${lastRead.surahNumber}?ayah=${lastRead.ayahNumber}`}
+            className="w-full sm:w-auto px-6 py-2.5 bg-primary text-white text-center rounded-lg font-bold shadow-md hover:bg-primary-hover hover:shadow-lg transition-all"
+          >
+            الانتقال للقراءة
+          </a>
+        </div>
+      )}
+
       <div className="mb-6 bg-surface rounded-lg shadow-sm border border-border-default overflow-hidden">
         <div className="flex items-stretch overflow-x-auto">
             <TabButton tab="surahs" label="السور" icon={<BookOpenIcon className="w-5 h-5"/>} />

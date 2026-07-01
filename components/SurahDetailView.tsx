@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import type { SurahData, SavedAyahItem, Ayah } from '../types';
 import { SpinnerIcon, ArrowLeftIcon, ArrowRightIcon } from './icons';
+import { safeLocalStorage } from '../utils/storage';
 import AyahActionPopover from './AyahActionPopover';
 import AyahRenderer from './AyahRenderer';
 import { formatSurahNameForDisplay } from '../utils/text';
@@ -351,6 +352,96 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   }, [currentPage, browsingMode, contentToRender, hizbQuarterStartMap]);
 
         
+  const findActiveAyah = () => {
+    const elements = document.querySelectorAll('[id^="ayah-"]');
+    let closestElement: Element | null = null;
+    let closestDistance = Infinity;
+
+    elements.forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      const distance = Math.abs(rect.top - 150);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestElement = el;
+      }
+    });
+
+    if (closestElement) {
+      const id = (closestElement as HTMLElement).id;
+      const parts = id.split('-');
+      if (parts.length === 3) {
+        const sNum = parseInt(parts[1], 10);
+        const aNum = parseInt(parts[2], 10);
+        return { surahNumber: sNum, ayahNumber: aNum };
+      }
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const saveProgress = () => {
+      let activeAyahNum: number | null = null;
+      let activeSurahNum = surah.number;
+      let activePageNum = currentPage;
+
+      if (browsingMode === 'page') {
+        const active = findActiveAyah();
+        if (active && pageSurahs && pageSurahs.some(s => s.number === active.surahNumber)) {
+          activeSurahNum = active.surahNumber;
+          activeAyahNum = active.ayahNumber;
+        } else {
+          const firstSurahSegment = contentToRender[0];
+          if (firstSurahSegment && firstSurahSegment.ayahs && firstSurahSegment.ayahs.length > 0) {
+            activeSurahNum = firstSurahSegment.number;
+            activeAyahNum = firstSurahSegment.ayahs[0].numberInSurah;
+          }
+        }
+
+        const lastPosition = {
+          browsingMode: 'page',
+          pageNumber: activePageNum,
+          surahNumber: activeSurahNum,
+          ayahNumber: activeAyahNum || 1,
+          timestamp: Date.now()
+        };
+        safeLocalStorage.setItem('qran_last_read_position', JSON.stringify(lastPosition));
+        safeLocalStorage.setItem('qran_last_route', `#/page/${activePageNum}?ayah=${activeAyahNum || 1}`);
+      } else {
+        const active = findActiveAyah();
+        if (active) {
+          activeSurahNum = active.surahNumber;
+          activeAyahNum = active.ayahNumber;
+        } else if (surah.ayahs && surah.ayahs.length > 0) {
+          activeAyahNum = surah.ayahs[0].numberInSurah;
+        }
+
+        const lastPosition = {
+          browsingMode: 'full',
+          surahNumber: activeSurahNum,
+          ayahNumber: activeAyahNum || 1,
+          timestamp: Date.now()
+        };
+        safeLocalStorage.setItem('qran_last_read_position', JSON.stringify(lastPosition));
+        safeLocalStorage.setItem('qran_last_route', `#/surah/${activeSurahNum}?ayah=${activeAyahNum || 1}`);
+      }
+    };
+
+    const handleScroll = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(saveProgress, 500);
+    };
+
+    saveProgress();
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(timeoutId);
+    };
+  }, [surah.number, currentPage, browsingMode, contentToRender, pageSurahs]);
+
   return (
     <div className="animate-fade-in w-full max-w-4xl mx-auto px-4">
       <div className="overflow-hidden rounded-lg">
