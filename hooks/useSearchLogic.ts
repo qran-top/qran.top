@@ -21,6 +21,15 @@ const DEFAULT_EXPORT_TEMPLATE = `ملخص البحث عن: "{{query}}"
 {{/results}}
 `;
 
+// Helper to get normalized text with lazy caching to avoid heavy regex overhead
+const getNormalizedText = (ayah: any): string => {
+    if (ayah.normalizedText !== undefined) return ayah.normalizedText;
+    if (ayah._normalizedText === undefined) {
+        ayah._normalizedText = normalizeArabicText(ayah.text);
+    }
+    return ayah._normalizedText;
+};
+
 const findNeighboringWords = (results: Ayah[], query: string): string[] => {
     const normalizedQueryWords = normalizeArabicText(query).trim().split(' ').filter(w => w.length > 0);
     const numQueryWords = normalizedQueryWords.length;
@@ -37,7 +46,7 @@ const findNeighboringWords = (results: Ayah[], query: string): string[] => {
     };
 
     results.forEach(ayah => {
-        const ayahWords = normalizeArabicText(ayah.text).split(' ');
+        const ayahWords = getNormalizedText(ayah).split(' ');
         const numAyahWords = ayahWords.length;
 
         if (numQueryWords === 1) {
@@ -76,7 +85,8 @@ export const useSearchLogic = (
     correctedQuery: string | undefined, 
     results: Ayah[], 
     searchType: 'text' | 'number',
-    simpleCleanData: any[]
+    simpleCleanData: any[],
+    isRootSearch?: boolean
 ) => {
     const [exactMatch, setExactMatch] = useState(false);
     const [visibleSuggestionsCount, setVisibleSuggestionsCount] = useState(7);
@@ -92,14 +102,36 @@ export const useSearchLogic = (
     const activeResults = results;
 
     const phraseFilters = useMemo(() => {
-        if (searchType === 'number' || queryWords.length < 2) {
+        if (searchType === 'number') {
+            return [];
+        }
+        
+        if (isRootSearch) {
+            const uniqueWords = Array.from(new Set(queryWords));
+            const wordCounts: { phrase: string; count: number }[] = [];
+            
+            uniqueWords.forEach(word => {
+                const count = activeResults.filter(ayah => {
+                    const ayahWords = getNormalizedText(ayah).split(' ');
+                    return ayahWords.includes(word);
+                }).length;
+                if (count > 0) {
+                    wordCounts.push({ phrase: word, count });
+                }
+            });
+            
+            wordCounts.sort((a, b) => b.count - a.count);
+            return wordCounts;
+        }
+
+        if (queryWords.length < 2) {
             return [];
         }
         
         const currentResults = activeResults;
         const phrasesToConsider = new Set<string>();
         currentResults.forEach(ayah => {
-            const ayahWords = normalizeArabicText(ayah.text).split(' ');
+            const ayahWords = getNormalizedText(ayah).split(' ');
             const indices: number[] = [];
             ayahWords.forEach((word, index) => {
                 if (queryWords.includes(word)) {
@@ -122,7 +154,7 @@ export const useSearchLogic = (
 
         const allPhraseCounts: { phrase: string, count: number }[] = [];
         phrasesToConsider.forEach(phrase => {
-            const count = currentResults.filter(ayah => normalizeArabicText(ayah.text).includes(phrase)).length;
+            const count = currentResults.filter(ayah => getNormalizedText(ayah).includes(phrase)).length;
             allPhraseCounts.push({ phrase, count });
         });
 
@@ -136,24 +168,31 @@ export const useSearchLogic = (
         const finalFilters = userPhraseObj ? [userPhraseObj, ...topPhrases] : topPhrases;
 
         return finalFilters.sort((a, b) => b.count - a.count || a.phrase.length - b.phrase.length);
-    }, [activeResults, queryWords, searchType]);
+    }, [activeResults, queryWords, searchType, isRootSearch]);
 
     const displayedResults = useMemo(() => {
         let baseResults = activeResults;
         
         // Exact match applies to Text Mode only
-        if (searchType === 'text' && exactMatch && isSingleWordSearch) {
+        if (searchType === 'text' && exactMatch && isSingleWordSearch && !isRootSearch) {
             const normalizedQuery = queryWords.join(' ');
             const regex = new RegExp(`(^|\\s)${normalizedQuery}(\\s|$)`);
-            baseResults = baseResults.filter(ayah => regex.test(normalizeArabicText(ayah.text)));
+            baseResults = baseResults.filter(ayah => regex.test(getNormalizedText(ayah)));
         }
         
         if (activePhraseFilter === 'all') {
             return baseResults;
         }
 
-        return baseResults.filter(ayah => normalizeArabicText(ayah.text).includes(activePhraseFilter));
-    }, [activeResults, queryWords, exactMatch, searchType, activePhraseFilter, isSingleWordSearch]);
+        if (isRootSearch) {
+            return baseResults.filter(ayah => {
+                const ayahWords = getNormalizedText(ayah).split(' ');
+                return ayahWords.includes(activePhraseFilter);
+            });
+        }
+
+        return baseResults.filter(ayah => getNormalizedText(ayah).includes(activePhraseFilter));
+    }, [activeResults, queryWords, exactMatch, searchType, activePhraseFilter, isSingleWordSearch, isRootSearch]);
 
     const occurrencesMap = useMemo(() => {
         if (searchType === 'number' || !query) return [];
@@ -162,10 +201,10 @@ export const useSearchLogic = (
         if (!transformedQuery) return [];
 
         const occurrences: { itemIndex: number; wordIndex: number; }[] = [];
-        const searchTerms = transformedQuery.split(/\s+/);
+        const searchTerms = transformedQuery.split(' ');
 
         displayedResults.forEach((resultAyah, itemIndex) => {
-            const ayahWords = normalizeArabicText(resultAyah.text).split(' ');
+            const ayahWords = getNormalizedText(resultAyah).split(' ');
             
             for (let i = 0; i <= ayahWords.length - searchTerms.length; i++) {
                 const slice = ayahWords.slice(i, i + searchTerms.length);
@@ -182,23 +221,33 @@ export const useSearchLogic = (
     const generalOccurrences = useMemo(() => {
         if (searchType === 'number' || queryWords.length === 0) return 0;
         let count = 0;
-        activeResults.forEach(ayah => {
-            const ayahText = normalizeArabicText(ayah.text);
-            queryWords.forEach(word => {
-                count += (ayahText.match(new RegExp(word, 'g')) || []).length;
-            });
-        });
+        const nWords = queryWords.length;
+        for (let i = 0; i < activeResults.length; i++) {
+            const ayahText = getNormalizedText(activeResults[i]);
+            for (let w = 0; w < nWords; w++) {
+                const word = queryWords[w];
+                let idx = ayahText.indexOf(word);
+                while (idx !== -1) {
+                    count++;
+                    idx = ayahText.indexOf(word, idx + word.length);
+                }
+            }
+        }
         return count;
     }, [activeResults, queryWords, searchType]);
 
     const exactOccurrences = useMemo(() => {
         if (searchType === 'number' || queryWords.length === 0) return 0;
         let count = 0;
-        const regex = new RegExp(`(^|\\s)(${queryWords.join('|')})(\\s|$)`, 'g');
-        activeResults.forEach(ayah => {
-            const ayahText = normalizeArabicText(ayah.text);
-            count += (ayahText.match(regex) || []).length;
-        });
+        const wordSet = new Set(queryWords);
+        for (let i = 0; i < activeResults.length; i++) {
+            const ayahWords = getNormalizedText(activeResults[i]).split(' ');
+            for (let j = 0; j < ayahWords.length; j++) {
+                if (wordSet.has(ayahWords[j])) {
+                    count++;
+                }
+            }
+        }
         return count;
     }, [activeResults, queryWords, searchType]);
 
@@ -266,12 +315,12 @@ export const useSearchLogic = (
         return template.trim();
     }, [displayedResults, searchType, correctedQuery, query, generalOccurrences, exactOccurrences, exactMatch]);
     
-    // Reset filters when query changes
+    // Reset filters when query or mode changes
     useEffect(() => {
         setActivePhraseFilter('all');
         setExactMatch(false);
         setVisibleSuggestionsCount(7);
-    }, [query, correctedQuery]);
+    }, [query, correctedQuery, isRootSearch]);
 
     return {
         exactMatch, setExactMatch,

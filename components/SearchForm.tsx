@@ -4,12 +4,17 @@ import { MicrophoneIcon, SearchIcon } from './icons';
 interface SearchFormProps {
     onSearch: (query: string) => void;
     disabled?: boolean;
+    initialQuery?: string;
 }
 
-const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false }) => {
-    const [query, setQuery] = useState('');
+const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false, initialQuery = '' }) => {
+    const [query, setQuery] = useState(initialQuery);
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef<any>(null);
+
+    React.useEffect(() => {
+        setQuery(initialQuery);
+    }, [initialQuery]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

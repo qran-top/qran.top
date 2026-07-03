@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { MenuIcon, LogoIcon, SearchIcon, ArrowRightIcon, PlayIcon, SpinnerIcon, WifiOffIcon } from './icons';
+import { MenuIcon, LogoIcon, PlayIcon, SpinnerIcon, WifiOffIcon, BookmarkIcon } from './icons';
 import { QURAN_INDEX } from '../quranIndex';
 import { formatSurahNameForDisplay } from '../utils/text';
 import SearchForm from './SearchForm';
@@ -57,7 +57,6 @@ const Header: React.FC<HeaderProps> = ({
     onStartPlayback,
     isPlaybackLoading,
 }) => {
-    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const isOnline = useNetworkStatus();
     
     // Consume Settings from Context
@@ -65,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({
         fontStyle, setFontStyle, selectedEdition, setSelectedEdition, setBrowsingMode, selectedAudioEdition 
     } = useSettingsContext();
 
-    const { pageTitle, isSurahOrPage, isRelevantPageForToggle, isSearchPage, isHomePage } = useMemo(() => {
+    const { pageTitle, isSurahOrPage, isRelevantPageForToggle, isSearchPage, isHomePage, searchQuery } = useMemo(() => {
         const path = currentPath.split('?')[0];
         const isHome = path === '#/';
         const isSearch = path.startsWith('#/search/');
@@ -74,6 +73,8 @@ const Header: React.FC<HeaderProps> = ({
         const isRelevant = isSurah || isPage || isSearch;
         
         let title = "QRAN.TOP";
+        let searchQuery = "";
+
         if (!isHome) {
             if (isSurah) {
                 const surahNum = parseInt(path.split('/')[2], 10);
@@ -84,6 +85,12 @@ const Header: React.FC<HeaderProps> = ({
                 title = `الصفحة ${pageNum}`;
             } else if (isSearch) {
                 title = "نتائج البحث";
+                const parts = path.split('/');
+                if (parts[2] === 'number') {
+                    searchQuery = parts[3] ? decodeURIComponent(parts[3]) : '';
+                } else {
+                    searchQuery = parts[2] ? decodeURIComponent(parts[2]) : '';
+                }
             }
         } else {
             title = "الفهرس";
@@ -94,7 +101,8 @@ const Header: React.FC<HeaderProps> = ({
             isSurahOrPage: isSurah || isPage, 
             isRelevantPageForToggle: isRelevant,
             isSearchPage: isSearch,
-            isHomePage: isHome
+            isHomePage: isHome,
+            searchQuery
         };
     }, [currentPath]);
 
@@ -136,11 +144,6 @@ const Header: React.FC<HeaderProps> = ({
         onStartPlayback([], selectedAudioEdition);
     }, [onStartPlayback, selectedAudioEdition, isOnline]);
 
-    const handleSearchSubmit = (query: string) => {
-        onSearch(query);
-        setIsMobileSearchOpen(false);
-    };
-    
     const handleTitleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
         window.location.hash = '#/';
@@ -149,94 +152,80 @@ const Header: React.FC<HeaderProps> = ({
     return (
         <header className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md shadow-sm border-b border-border-default transition-all duration-300">
             <div className="w-full max-w-7xl mx-auto px-4">
-                <div className="flex items-center justify-between h-16 gap-2">
+                {/* Row 1: Brand, Title, and Actions */}
+                <div className="flex items-center justify-between h-14 gap-2">
+                    {/* Right Group: Menu, Theme, Offline Indicator */}
+                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                        <button
+                            onClick={() => setIsSidePanelOpen(true)}
+                            className="p-2 text-text-muted rounded-full hover:bg-surface-hover transition-colors"
+                            aria-label="فتح القائمة"
+                        >
+                            <MenuIcon className="w-6 h-6" />
+                        </button>
+                        <ThemeToggleButton />
+                        {!isOnline && (
+                            <div className="flex items-center justify-center p-2 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400" title="أنت غير متصل بالإنترنت. بعض الميزات قد لا تعمل.">
+                                <WifiOffIcon className="w-5 h-5" />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Center Group: Dynamic Page Title */}
+                    <div className="flex-grow flex justify-center min-w-0 px-2">
+                    </div>
                     
-                    {isMobileSearchOpen ? (
-                        <div className="flex items-center w-full gap-2 animate-fade-in">
-                            <button onClick={() => setIsMobileSearchOpen(false)} className="p-2 text-text-secondary hover:bg-surface-hover rounded-full">
-                                <ArrowRightIcon className="w-6 h-6" />
+                    {/* Left Group: Action buttons and Logo */}
+                    <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+                        {isRelevantPageForToggle && (
+                            <button 
+                                onClick={handleStyleToggle}
+                                disabled={fontStyle !== 'uthmani' && isUthmaniLoading}
+                                className="flex items-center gap-1 px-2.5 py-1 text-xs md:px-3 md:py-1.5 font-semibold bg-surface-subtle text-text-primary hover:text-primary rounded-lg hover:bg-surface-hover transition-all border border-border-default disabled:opacity-50 shadow-sm"
+                                title="التبديل بين أوضاع العرض"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5 text-primary">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                                </svg>
+                                <span>{getToggleLabel()}</span>
                             </button>
-                            <div className="flex-grow">
-                                <SearchForm onSearch={handleSearchSubmit} disabled={searchDisabled} />
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Right Group (visually): Menu, Theme, Offline Indicator */}
-                            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                                <button
-                                    onClick={() => setIsSidePanelOpen(true)}
-                                    className="p-2 text-text-muted rounded-full hover:bg-surface-hover transition-colors"
-                                    aria-label="فتح القائمة"
-                                >
-                                    <MenuIcon className="w-6 h-6" />
-                                </button>
-                                <ThemeToggleButton />
-                                {!isOnline && (
-                                    <div className="flex items-center justify-center p-2 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400" title="أنت غير متصل بالإنترنت. بعض الميزات قد لا تعمل.">
-                                        <WifiOffIcon className="w-5 h-5" />
-                                    </div>
-                                )}
-                            </div>
+                        )}
 
-                            {/* Center Group: Title or Search */}
-                            <div className="flex-grow flex justify-center min-w-0 px-2">
-                                {/* Mobile Title */}
-                                <div className="md:hidden text-lg font-bold text-text-primary truncate" title={pageTitle}>
-                                     {isSearchPage ? (
-                                        <a href="#/" onClick={handleTitleClick} className="hover:underline">{pageTitle}</a>
-                                    ) : (
-                                        pageTitle
-                                    )}
-                                </div>
-                                
-                                {/* Desktop Search - Always Visible */}
-                                <div className="hidden md:flex items-center w-full max-w-xl">
-                                    <SearchForm onSearch={onSearch} disabled={searchDisabled} />
-                                </div>
-                            </div>
-                            
-                            {/* Left Group (visually): Actions, Logo */}
-                            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                                {isRelevantPageForToggle && (
-                                    <button 
-                                        onClick={handleStyleToggle}
-                                        disabled={fontStyle !== 'uthmani' && isUthmaniLoading}
-                                        className="px-2 py-1.5 text-xs md:text-sm md:px-3 font-semibold bg-surface-subtle text-text-secondary rounded-lg hover:bg-surface-hover transition-colors border border-border-default disabled:opacity-50"
-                                        title="التبديل بين أوضاع العرض"
-                                    >
-                                        <span>{getToggleLabel()}</span>
-                                    </button>
-                                )}
+                        <a
+                            href="#/history"
+                            className="p-2 rounded-full transition-all border border-border-default text-text-primary hover:text-primary hover:bg-surface-hover bg-surface-subtle shadow-sm flex items-center justify-center cursor-pointer"
+                            title="سجل القراءة ومواضع التوقف"
+                            aria-label="سجل القراءة"
+                        >
+                            <BookmarkIcon className="w-4 h-4 text-primary" />
+                        </a>
 
-                                {isSurahOrPage && (
-                                    <button
-                                        onClick={handlePlaySurah}
-                                        disabled={isPlaybackLoading}
-                                        className="hidden md:flex p-2 bg-primary text-white rounded-full shadow-md hover:bg-primary-hover transition-colors disabled:opacity-60"
-                                        aria-label="استماع"
-                                        title={!isOnline ? "غير متاح بدون إنترنت" : "استماع"}
-                                    >
-                                        {isPlaybackLoading ? <SpinnerIcon className="w-4 h-4"/> : <PlayIcon className="w-4 h-4"/>}
-                                    </button>
-                                )}
+                        {isSurahOrPage && (
+                            <button
+                                onClick={handlePlaySurah}
+                                disabled={isPlaybackLoading}
+                                className="hidden sm:flex p-2 bg-primary text-white rounded-full shadow-md hover:bg-primary-hover transition-colors disabled:opacity-60"
+                                aria-label="استماع"
+                                title={!isOnline ? "غير متاح بدون إنترنت" : "استماع"}
+                            >
+                                {isPlaybackLoading ? <SpinnerIcon className="w-4 h-4"/> : <PlayIcon className="w-4 h-4"/>}
+                            </button>
+                        )}
+                        
+                        <div className="w-px h-6 bg-border-default mx-1"></div>
 
-                                <button 
-                                    onClick={() => setIsMobileSearchOpen(true)}
-                                    className="md:hidden p-2 text-text-muted hover:text-primary hover:bg-surface-hover rounded-full"
-                                    aria-label="بحث"
-                                >
-                                    <SearchIcon className="w-6 h-6" />
-                                </button>
-                                
-                                <div className="w-px h-6 bg-border-default mx-1"></div>
+                        <Logo dataSourceStatus={dataSourceStatus} isHomePage={isHomePage} />
+                    </div>
+                </div>
 
-                                <Logo dataSourceStatus={dataSourceStatus} isHomePage={isHomePage} />
-                            </div>
-                        </>
-                    )}
+                {/* Row 2: Search Form - Always open and prominent on a separate line */}
+                <div className="pb-3 pt-1.5 border-t border-border-default/10">
+                    <div className="w-full max-w-xl mx-auto">
+                        <SearchForm onSearch={onSearch} disabled={searchDisabled} initialQuery={searchQuery} />
+                    </div>
                 </div>
             </div>
+
         </header>
     );
 };

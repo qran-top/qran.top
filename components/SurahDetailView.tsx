@@ -5,6 +5,7 @@ import { safeLocalStorage } from '../utils/storage';
 import AyahActionPopover from './AyahActionPopover';
 import AyahRenderer from './AyahRenderer';
 import { formatSurahNameForDisplay } from '../utils/text';
+import { QURAN_INDEX } from '../quranIndex';
 import { getQuranTextStyle } from '../utils/font';
 import { useSettingsContext } from '../contexts/SettingsContext';
 
@@ -220,6 +221,40 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
     setActivePopover(null);
   };
 
+  const handleSaveReadingStop = (ayah: Ayah) => {
+    try {
+      const activeSurahNum = ayah.surah?.number || surah.number;
+      const activeSurahName = ayah.surah?.name || surah.name;
+      const activeAyahNum = ayah.numberInSurah;
+      
+      const newStop = {
+        browsingMode,
+        surahNumber: activeSurahNum,
+        surahName: activeSurahName,
+        ayahNumber: activeAyahNum,
+        pageNumber: browsingMode === 'page' ? currentPage : undefined,
+        timestamp: Date.now()
+      };
+
+      const stored = safeLocalStorage.getItem('qran_reading_stops');
+      let stops: any[] = [];
+      if (stored) {
+        stops = JSON.parse(stored);
+      }
+      
+      // Remove any existing stop for the same surah and ayah
+      stops = stops.filter(s => !(s.surahNumber === activeSurahNum && s.ayahNumber === activeAyahNum));
+      
+      // Add new stop to front, slice to max 5
+      stops.unshift(newStop);
+      stops = stops.slice(0, 5);
+      
+      safeLocalStorage.setItem('qran_reading_stops', JSON.stringify(stops));
+    } catch (e) {
+      console.error("Failed to save reading stop", e);
+    }
+  };
+
   const handleCopyAyah = (ayah: Ayah) => {
     const isImlaei = fontStyle === 'imlai_1' || fontStyle === 'imlai_2';
     let ayahText = ayah.text || '';
@@ -425,6 +460,48 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
         };
         safeLocalStorage.setItem('qran_last_read_position', JSON.stringify(lastPosition));
         safeLocalStorage.setItem('qran_last_route', `#/surah/${activeSurahNum}?ayah=${activeAyahNum || 1}`);
+      }
+
+      // Automatically save to reading stops (history)
+      try {
+        const stored = safeLocalStorage.getItem('qran_reading_stops');
+        let stops: any[] = [];
+        if (stored) {
+          stops = JSON.parse(stored);
+        }
+
+        const surahObj = QURAN_INDEX.find(s => s.number === activeSurahNum);
+        const surahName = surahObj ? surahObj.name : `سورة ${activeSurahNum}`;
+
+        const newStop = {
+          browsingMode,
+          surahNumber: activeSurahNum,
+          surahName,
+          ayahNumber: activeAyahNum || 1,
+          pageNumber: browsingMode === 'page' ? activePageNum : undefined,
+          timestamp: Date.now()
+        };
+
+        const isDuplicate = stops.length > 0 && 
+          stops[0].surahNumber === activeSurahNum && 
+          stops[0].ayahNumber === (activeAyahNum || 1) &&
+          (browsingMode === 'page' ? stops[0].pageNumber === activePageNum : stops[0].browsingMode === 'full');
+
+        if (!isDuplicate) {
+          stops = stops.filter(s => {
+            if (browsingMode === 'page') {
+              return s.pageNumber !== activePageNum;
+            } else {
+              return s.surahNumber !== activeSurahNum;
+            }
+          });
+
+          stops.unshift(newStop);
+          stops = stops.slice(0, 5);
+          safeLocalStorage.setItem('qran_reading_stops', JSON.stringify(stops));
+        }
+      } catch (e) {
+        console.error("Failed to autosave reading stop", e);
       }
     };
 
@@ -655,6 +732,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
             onSearchText={handleSearchByAyahText}
             onSearchNumber={onSearchByAyahNumber}
             onPlayFrom={handlePlayFromAyah}
+            onSaveStop={handleSaveReadingStop}
             copiedAyah={copiedAyah}
         />
       )}

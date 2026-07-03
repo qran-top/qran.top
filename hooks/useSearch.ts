@@ -3,6 +3,16 @@ import type { Ayah, SurahData } from '../types';
 import { QURAN_INDEX } from '../quranIndex';
 import { normalizeArabicText } from '../utils/text';
 import { levenshtein } from '../utils/levenshtein';
+import { findWordsByRoot } from '../utils/roots';
+
+// Universal helper to get pre-normalized or lazily cached normalized text
+const getNormalizedText = (ayah: any): string => {
+    if (ayah.normalizedText !== undefined) return ayah.normalizedText;
+    if (ayah._normalizedText === undefined) {
+        ayah._normalizedText = normalizeArabicText(ayah.text);
+    }
+    return ayah._normalizedText;
+};
 
 export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) => {
     
@@ -16,27 +26,31 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
     }, []);
     
     const simpleSearchableAyahs = useMemo(() => {
-        if (!allQuranData || !allQuranData['quran-simple-clean']) return [];
-        const simpleData = allQuranData['quran-simple-clean'];
+        const simpleData = allQuranData?.['quran-simple-clean'];
+        if (!simpleData) return [];
         return simpleData.flatMap(surah =>
             surah.ayahs.map(ayah => ({
                 ...ayah,
+                normalizedText: normalizeArabicText(ayah.text),
                 surah: {
                     number: surah.number, name: surah.name, englishName: surah.englishName,
                     englishNameTranslation: surah.englishNameTranslation, revelationType: surah.revelationType,
                 }
             }))
         );
-    }, [allQuranData]);
+    }, [allQuranData?.['quran-simple-clean']]);
 
     const quranicWordList = useMemo(() => {
-        if (!simpleSearchableAyahs) return new Set<string>();
+        if (!simpleSearchableAyahs || simpleSearchableAyahs.length === 0) return new Set<string>();
         const words = new Set<string>();
-        simpleSearchableAyahs.forEach(ayah => {
-            normalizeArabicText(ayah.text).split(/\s+/).forEach(word => {
-                if (word) words.add(word);
-            });
-        });
+        for (let i = 0; i < simpleSearchableAyahs.length; i++) {
+            const text = simpleSearchableAyahs[i].normalizedText;
+            const parts = text.split(' ');
+            for (let j = 0; j < parts.length; j++) {
+                const w = parts[j];
+                if (w) words.add(w);
+            }
+        }
         return words;
     }, [simpleSearchableAyahs]);
 
@@ -57,8 +71,61 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
         return null;
     }, [surahNameMap]);
 
-    const performSearch = useCallback((query: string): { results: Ayah[], finalSearchEdition: string, correctedQuery?: string } => {
+    const performSearch = useCallback((query: string, isRootSearch?: boolean): { results: Ayah[], finalSearchEdition: string, correctedQuery?: string } => {
         if (!allQuranData) return { results: [], finalSearchEdition: 'quran-simple-clean' };
+        
+        if (isRootSearch) {
+            let matchingWords = findWordsByRoot(query, quranicWordList);
+            let correctedFromTypo: string | undefined = undefined;
+
+            if (matchingWords.length === 0 && quranicWordList.size > 0) {
+                // Find closest word in the Quran using Levenshtein distance
+                let minDistance = 3; 
+                let bestMatch = '';
+                const normalizedQuery = normalizeArabicText(query);
+                const queryLen = normalizedQuery.length;
+                if (queryLen >= 3) {
+                    for (const dictWord of quranicWordList) {
+                        if (Math.abs(dictWord.length - queryLen) >= minDistance) continue;
+                        const distance = levenshtein(normalizedQuery, dictWord);
+                        if (distance < minDistance) { 
+                            minDistance = distance; 
+                            bestMatch = dictWord; 
+                        }
+                        if (minDistance === 1) break;
+                    }
+                }
+                if (bestMatch) {
+                    matchingWords = findWordsByRoot(bestMatch, quranicWordList);
+                    if (matchingWords.length > 0) {
+                        correctedFromTypo = bestMatch;
+                    }
+                }
+            }
+
+            if (matchingWords.length === 0) {
+                return { results: [], finalSearchEdition: 'quran-simple-clean' };
+            }
+            
+            const matchingWordSet = new Set(matchingWords.map(normalizeArabicText));
+            const matchingAyahNumbers: number[] = [];
+            
+            simpleSearchableAyahs.forEach(ayah => {
+                const wordsInAyah = getNormalizedText(ayah).split(/\s+/);
+                const hasMatch = wordsInAyah.some(w => matchingWordSet.has(w));
+                if (hasMatch) {
+                    matchingAyahNumbers.push(ayah.number);
+                }
+            });
+            
+            const matchingSet = new Set(matchingAyahNumbers);
+            const results = simpleSearchableAyahs.filter(ayah => matchingSet.has(ayah.number));
+            return {
+                results,
+                finalSearchEdition: 'quran-simple-clean',
+                correctedQuery: correctedFromTypo ? matchingWords.join(' ') : matchingWords.join(' ')
+            };
+        }
         
         const executeSearch = (searchQuery: string) => {
             const isExactPhrase = searchQuery.startsWith('"') && searchQuery.endsWith('"');
@@ -69,13 +136,54 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
             const hasDiacritics = /[\u064B-\u065F]/.test(content);
             
             const doSearch = (editionId: string): number[] => {
+                if (editionId === 'quran-simple-clean') {
+                    const searchPhrase = searchWords.join(' ');
+                    const matchingAyahNumbers: number[] = [];
+                    const length = simpleSearchableAyahs.length;
+                    for (let i = 0; i < length; i++) {
+                        const ayah = simpleSearchableAyahs[i];
+                        const ayahText = ayah.normalizedText;
+                        if (isExactPhrase) {
+                            if (ayahText.includes(searchPhrase)) {
+                                matchingAyahNumbers.push(ayah.number);
+                            }
+                        } else {
+                            let allMatch = true;
+                            for (let w = 0; w < searchWords.length; w++) {
+                                if (!ayahText.includes(searchWords[w])) {
+                                    allMatch = false;
+                                    break;
+                                }
+                            }
+                            if (allMatch) {
+                                matchingAyahNumbers.push(ayah.number);
+                            }
+                        }
+                    }
+                    return matchingAyahNumbers;
+                }
+
                 const dataSource = allQuranData[editionId];
                 if (!dataSource) return [];
                 const matchingAyahNumbers: number[] = [];
+                const searchPhrase = searchWords.join(' ');
                 dataSource.forEach(surah => surah.ayahs.forEach(ayah => {
-                    const ayahText = normalizeArabicText(ayah.text);
-                    if ((isExactPhrase && ayahText.includes(searchWords.join(' '))) || (!isExactPhrase && searchWords.every(word => ayahText.includes(word)))) {
-                        matchingAyahNumbers.push(ayah.number);
+                    const ayahText = getNormalizedText(ayah);
+                    if (isExactPhrase) {
+                        if (ayahText.includes(searchPhrase)) {
+                            matchingAyahNumbers.push(ayah.number);
+                        }
+                    } else {
+                        let allMatch = true;
+                        for (let w = 0; w < searchWords.length; w++) {
+                            if (!ayahText.includes(searchWords[w])) {
+                                allMatch = false;
+                                break;
+                            }
+                        }
+                        if (allMatch) {
+                            matchingAyahNumbers.push(ayah.number);
+                        }
                     }
                 }));
                 return matchingAyahNumbers;
@@ -95,10 +203,12 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
         };
 
         const initialResult = executeSearch(query);
-        if (initialResult.results.length === 0 && !query.includes(' ') && !query.startsWith('"') && quranicWordList.size > 0) {
+        const normalizedQuery = normalizeArabicText(query);
+        const queryLen = normalizedQuery.length;
+        if (initialResult.results.length === 0 && !query.includes(' ') && !query.startsWith('"') && quranicWordList.size > 0 && queryLen >= 3) {
             let minDistance = 3; let bestMatch = '';
-            const normalizedQuery = normalizeArabicText(query);
             for (const dictWord of quranicWordList) {
+                if (Math.abs(dictWord.length - queryLen) >= minDistance) continue;
                 const distance = levenshtein(normalizedQuery, dictWord);
                 if (distance < minDistance) { minDistance = distance; bestMatch = dictWord; }
                 if (minDistance === 1) break;

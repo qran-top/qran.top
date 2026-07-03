@@ -11,6 +11,7 @@ import WordAnalysisView from './WordAnalysisView';
 import PrivacyPolicyView from './PrivacyPolicyView';
 import LoadingScreen from './LoadingScreen';
 import AboutView from './AboutView';
+import HistoryView from './HistoryView';
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -42,7 +43,7 @@ interface AppRouterProps {
     hizbQuarterStartMap: Map<number, number>;
     setIsSearching: (isSearching: boolean) => void;
     performSearchByAyahNumber: (num: number) => Ayah[];
-    performSearch: (query: string) => { results: Ayah[], finalSearchEdition: string, correctedQuery?: string };
+    performSearch: (query: string, isRootSearch?: boolean) => { results: Ayah[], finalSearchEdition: string, correctedQuery?: string };
 }
 
 const AppRouter: React.FC<AppRouterProps> = (props) => {
@@ -59,6 +60,23 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
     // Use Context for AudioEditions and selections
     const { activeEditions, selectedAudioEdition, setSelectedAudioEdition } = useSettingsContext();
 
+    // Prepare route info for memoized computations at top level (Rules of Hooks)
+    const isSearchPage = pathParts[0] === 'search';
+    const isSearchNumber = isSearchPage && pathParts[1] === 'number' && !!pathParts[2];
+    const searchNumberVal = isSearchNumber ? parseInt(pathParts[2], 10) : 0;
+    const searchQueryVal = isSearchPage && !isSearchNumber ? (pathParts[1] ? decodeURIComponent(pathParts[1]) : "") : "";
+    const isRootSearchVal = isSearchPage && !isSearchNumber && queryParams.get('mode') === 'root';
+
+    const searchNumberResults = React.useMemo(() => {
+        if (!isSearchNumber) return [] as Ayah[];
+        return performSearchByAyahNumber(searchNumberVal);
+    }, [performSearchByAyahNumber, isSearchNumber, searchNumberVal]);
+
+    const searchTextResult = React.useMemo(() => {
+        if (!isSearchPage || isSearchNumber) return { results: [] as Ayah[], finalSearchEdition: '', correctedQuery: undefined };
+        return performSearch(searchQueryVal, isRootSearchVal);
+    }, [performSearch, isSearchPage, isSearchNumber, searchQueryVal, isRootSearchVal]);
+
     if (isInitialLoading) return <LoadingScreen />;
     if (pathParts[0] === 'audio-khatmiyah') {
         return <AudioKhatmiyahView
@@ -74,6 +92,7 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
         />;
     }
     if (pathParts[0] === 'saved') return <SavedView collections={collections} collectionId={pathParts[1] || null} onDeleteCollection={handleDeleteCollection} onDeleteSavedItem={handleDeleteSavedItem} onUpdateNotes={updateItemNotes} />;
+    if (pathParts[0] === 'history') return <HistoryView surahList={QURAN_INDEX} />;
     if (pathParts[0] === 'analysis') return <WordAnalysisView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} initialWord={pathParts[1] ? decodeURIComponent(pathParts[1]) : undefined} />;
     if (pathParts[0] === 'settings') return <SettingsView 
         onExportNotebook={handleExportNotebook} 
@@ -156,13 +175,12 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
             onStartPlayback: handleStartPlayback,
         };
         if (pathParts[1] === 'number' && pathParts[2]) {
-            const ayahNumber = parseInt(pathParts[2], 10);
-            return <SearchView {...commonProps} query={pathParts[2]} results={performSearchByAyahNumber(ayahNumber)} searchEdition={'quran-simple-clean'} searchType="number" />;
+            return <SearchView {...commonProps} query={pathParts[2]} results={searchNumberResults} searchEdition={'quran-simple-clean'} searchType="number" />;
         }
         const query = pathParts[1] ? decodeURIComponent(pathParts[1]) : "";
-        const searchResult = performSearch(query);
+        const isRootSearch = queryParams.get('mode') === 'root';
         const position = queryParams.get('s') ? { surah: parseInt(queryParams.get('s')!), ayah: parseInt(queryParams.get('a')!), wordIndex: parseInt(queryParams.get('w')!) } : undefined;
-        return <SearchView {...commonProps} query={query} results={searchResult.results} correctedQuery={searchResult.correctedQuery} autoOpenDiscussion={!!queryParams.get('from')} searchEdition={searchResult.finalSearchEdition} position={position} />;
+        return <SearchView {...commonProps} query={query} results={searchTextResult.results} correctedQuery={searchTextResult.correctedQuery} autoOpenDiscussion={!!queryParams.get('from')} searchEdition={searchTextResult.finalSearchEdition} position={position} isRootSearch={isRootSearch} />;
     }
     return <HomeView surahList={QURAN_INDEX} juzList={JUZ_INDEX} hizbList={HIZB_INDEX} />;
 };

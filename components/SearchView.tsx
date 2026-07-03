@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Ayah, SurahData, SavedAyahItem, SavedSearchItem } from '../types';
-import { SearchIcon, ClearIcon, BackspaceIcon, BackspaceReverseIcon } from './icons';
+import { SearchIcon, ClearIcon } from './icons';
 import { normalizeArabicText, formatSurahNameForDisplay } from '../utils/text';
 import { useSearchLogic } from '../hooks/useSearchLogic';
 import { useSettingsContext } from '../contexts/SettingsContext';
@@ -17,7 +17,7 @@ import NeighboringWords from './search/NeighboringWords';
 interface SearchViewProps {
   query: string;
   results: Ayah[];
-  onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }) => void;
+  onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRootSearch?: boolean) => void;
   onSearchByAyahNumber: (ayahNumber: number) => void;
   onSearchComplete: () => void;
   autoOpenDiscussion?: boolean;
@@ -33,6 +33,7 @@ interface SearchViewProps {
   isPlaybackLoading: boolean;
   onStartPlayback: (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void;
   correctedQuery?: string;
+  isRootSearch?: boolean;
 }
 
 export const SearchView: React.FC<SearchViewProps> = ({ 
@@ -40,13 +41,13 @@ export const SearchView: React.FC<SearchViewProps> = ({
     displayEditionData, searchEdition, position, 
     simpleCleanData, onSaveAyah, onSaveSearch, searchType = 'text',
     currentlyPlayingAyahGlobalNumber, isPlaybackLoading, onStartPlayback,
-    correctedQuery
+    correctedQuery, isRootSearch = false
 }) => {
   const [editableQuery, setEditableQuery] = useState(query);
   const [isAllCopied, setIsAllCopied] = useState(false);
   
   // Consume Settings from Context
-  const { displayEdition, fontStyle, selectedAudioEdition, setSelectedAudioEdition, activeEditions } = useSettingsContext();
+  const { displayEdition, fontStyle, selectedAudioEdition, setSelectedAudioEdition, activeEditions, fontSize } = useSettingsContext();
 
   const itemRefs = useRef<React.RefObject<HTMLLIElement>[]>([]);
   
@@ -73,7 +74,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
     generalOccurrences, exactOccurrences,
     neighboringWords,
     formatResultsForExport,
-  } = useSearchLogic(query, correctedQuery, results, searchType as 'text' | 'number', simpleCleanData);
+  } = useSearchLogic(query, correctedQuery, results, searchType as 'text' | 'number', simpleCleanData, isRootSearch);
 
 
   const normalizedQueryForDiscussion = useMemo(() => {
@@ -127,17 +128,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedQuery = editableQuery.trim();
-    if (trimmedQuery && trimmedQuery !== query) onNewSearch(trimmedQuery);
-  };
-
-  const handleDeleteFirstChar = () => {
-    const newQuery = editableQuery.slice(1);
-    if (newQuery) onNewSearch(newQuery); else setEditableQuery('');
-  };
-
-  const handleDeleteLastChar = () => {
-    const newQuery = editableQuery.slice(0, -1);
-    if (newQuery) onNewSearch(newQuery); else setEditableQuery('');
+    if (trimmedQuery && trimmedQuery !== query) onNewSearch(trimmedQuery, undefined, undefined, isRootSearch);
   };
 
   const handleSaveSearch = () => {
@@ -209,22 +200,13 @@ export const SearchView: React.FC<SearchViewProps> = ({
   return (
     <div className="animate-fade-in w-full max-w-4xl mx-auto px-4">
       {searchType !== 'number' && (
-          <div className="mb-6">
-              <form onSubmit={handleFormSubmit} className="flex-grow w-full flex items-center gap-2">
-                {isSingleWordSearch && editableQuery.length > 1 && <button type="button" onClick={handleDeleteFirstChar} className="flex-shrink-0 p-2 text-text-muted rounded-full hover:bg-surface-hover transition-colors" title="حذف من بداية الكلمة"><BackspaceIcon className="w-5 h-5" /></button>}
-                <div className="relative flex-grow">
-                    <input type="text" value={editableQuery} onChange={(e) => setEditableQuery(e.target.value)} placeholder="ابحث عن كلمة..." className="w-full text-xl font-bold text-primary-text-strong border-b-2 border-border-default focus:border-primary bg-transparent py-2 pr-4 pl-12 outline-none transition-colors" aria-label="كلمة البحث"/>
-                    {editableQuery && (<button type="button" onClick={() => { setEditableQuery(''); onNewSearch(''); }} className="absolute left-1 top-1/2 -translate-y-1/2 p-2 text-text-muted hover:text-text-primary rounded-full" aria-label="مسح البحث"><ClearIcon className="w-5 h-5" /></button>)}
-                </div>
-                {isSingleWordSearch && editableQuery.length > 1 && <button type="button" onClick={handleDeleteLastChar} className="flex-shrink-0 p-2 text-text-muted rounded-full hover:bg-surface-hover transition-colors" title="حذف من نهاية الكلمة"><BackspaceReverseIcon className="w-5 h-5" /></button>}
-                <button type="submit" className="flex-shrink-0 p-3 bg-primary text-white rounded-full hover:bg-primary-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50" aria-label="بحث"><SearchIcon className="w-5 h-5" /></button>
-            </form>
-            <NeighboringWords neighboringWords={neighboringWords} visibleSuggestionsCount={visibleSuggestionsCount} onNeighborClick={(word) => onNewSearch(`${editableQuery.trim()} ${word}`)} onShowMore={handleShowMore}/>
+          <div className="mb-6 flex flex-col gap-3">
+              <NeighboringWords neighboringWords={neighboringWords} visibleSuggestionsCount={visibleSuggestionsCount} onNeighborClick={(word) => onNewSearch(`${editableQuery.trim()} ${word}`)} onShowMore={handleShowMore}/>
           </div>
       )}
       
       <main className="bg-surface p-6 sm:p-8 rounded-lg shadow-md transition-colors duration-300">
-        <PhraseFilters phraseFilters={phraseFilters} activePhraseFilter={activePhraseFilter} setActivePhraseFilter={setActivePhraseFilter} resultsCount={displayedResults.length}/>
+        <PhraseFilters phraseFilters={phraseFilters} activePhraseFilter={activePhraseFilter} setActivePhraseFilter={setActivePhraseFilter} resultsCount={results.length}/>
         <SearchResultsHeader 
             searchType={searchType} query={query} correctedQuery={correctedQuery}
             displayedResultsCount={displayedResults.length} resultsCount={results.length}
@@ -232,6 +214,8 @@ export const SearchView: React.FC<SearchViewProps> = ({
             exactOccurrences={exactOccurrences} exactMatch={exactMatch} setExactMatch={setExactMatch}
             totalOccurrences={totalOccurrences} onJumpToOccurrence={handleJumpToOccurrence}
             cachedAnalysisExists={cachedAnalysisExists} onNewSearch={onNewSearch}
+            isRootSearch={isRootSearch}
+            onToggleRootSearch={(val) => onNewSearch(query, undefined, undefined, val)}
         />
         
         {displayedResults.length > 0 && (
@@ -257,7 +241,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
                                 key={ayah.number} itemRef={itemRefs.current[index]} ayah={ayah} 
                                 queryWords={searchType === 'number' ? [] : queryWords} onNewSearch={onNewSearch}
                                 displayEdition={displayEdition} displayEditionData={displayEditionData} searchEdition={searchEdition}
-                                fontSize={useSettingsContext().fontSize} fontStyle={fontStyle} searchType={searchType} isCurrentlyPlaying={ayah.number === currentlyPlayingAyahGlobalNumber}
+                                fontSize={fontSize} fontStyle={fontStyle} searchType={searchType} isCurrentlyPlaying={ayah.number === currentlyPlayingAyahGlobalNumber}
                                 pulsingWordIndex={pulsingWord?.itemIndex === index ? pulsingWord.wordIndex : -1} resultIndex={index}
                                 simpleAyahText={simpleAyah?.text || ''}
                                 onUthmaniWordClick={(e, idx, text) => { if (wordPopoverState?.resultIndex === idx) setWordPopoverState(null); else setWordPopoverState({ resultIndex: idx, simpleText: text, triggerElement: e.currentTarget }); }}

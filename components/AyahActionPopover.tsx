@@ -1,7 +1,7 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Ayah } from '../types';
-import { BookmarkIcon, CopyIcon, PlayIcon, CheckIcon, SearchIcon, SparklesIcon } from './icons';
+import { BookmarkIcon, CopyIcon, PlayIcon, CheckIcon, SearchIcon, SparklesIcon, FlagIcon } from './icons';
 
 const AyahActionPopover: React.FC<{
     activePopover: { ayah: Ayah; triggerElement: HTMLElement };
@@ -11,11 +11,24 @@ const AyahActionPopover: React.FC<{
     onSearchText: (ayah: Ayah) => void;
     onSearchNumber: (num: number) => void;
     onPlayFrom: (ayah: Ayah) => void;
+    onSaveStop?: (ayah: Ayah) => void;
     copiedAyah: number | null;
-}> = ({ activePopover, onClose, onSave, onCopy, onSearchText, onSearchNumber, onPlayFrom, copiedAyah }) => {
+}> = ({ activePopover, onClose, onSave, onCopy, onSearchText, onSearchNumber, onPlayFrom, onSaveStop, copiedAyah }) => {
     
     const popoverRef = useRef<HTMLDivElement>(null);
     const [style, setStyle] = useState<React.CSSProperties>({ opacity: 0, pointerEvents: 'none' });
+    const [isStopSaved, setIsStopSaved] = useState(false);
+
+    const handleSaveStopClick = () => {
+        if (onSaveStop) {
+            onSaveStop(activePopover.ayah);
+            setIsStopSaved(true);
+            setTimeout(() => {
+                setIsStopSaved(false);
+                onClose();
+            }, 1200);
+        }
+    };
 
     useLayoutEffect(() => {
         if (popoverRef.current) {
@@ -64,6 +77,21 @@ const AyahActionPopover: React.FC<{
             </button>
             <button onClick={() => onSearchText(activePopover.ayah)} className="p-2.5 rounded-full text-text-subtle focus:opacity-100 hover:bg-surface-hover hover:text-primary transition-colors" title="بحث عن نص الآية"><SearchIcon className="w-5 h-5" /></button>
             <button onClick={() => { onSearchNumber(activePopover.ayah.numberInSurah); onClose(); }} className="p-2.5 rounded-full text-text-subtle focus:opacity-100 hover:bg-surface-hover hover:text-primary transition-colors" title={`بحث عن كل الآيات رقم ${activePopover.ayah.numberInSurah}`}><SparklesIcon className="w-5 h-5" /></button>
+            
+            {onSaveStop && (
+                <button 
+                    onClick={handleSaveStopClick} 
+                    className="p-2.5 rounded-full text-text-subtle focus:opacity-100 hover:bg-surface-hover hover:text-primary transition-colors" 
+                    title="تسجيل هذا الموضع كعلامة توقف"
+                >
+                    {isStopSaved ? (
+                        <CheckIcon className="w-5 h-5 text-green-500" />
+                    ) : (
+                        <FlagIcon className="w-5 h-5 text-amber-500 hover:scale-110 transition-transform" />
+                    )}
+                </button>
+            )}
+
             <div className="w-px h-5 bg-border-default mx-1"></div>
             <button onClick={() => onPlayFrom(activePopover.ayah)} className="p-2.5 rounded-full text-text-subtle focus:opacity-100 hover:bg-surface-hover hover:text-primary transition-colors" title="تشغيل التلاوة من هذه الآية"><PlayIcon className="w-5 h-5" /></button>
         </div>,
