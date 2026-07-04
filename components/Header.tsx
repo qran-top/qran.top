@@ -38,8 +38,8 @@ const Logo: React.FC<{ dataSourceStatus: 'primary' | 'fallback'; isHomePage: boo
     const dotColorClass = dataSourceStatus === 'primary' ? 'text-green-500' : 'text-red-500';
 
     return (
-        <div onClick={handleLogoClick} className="flex items-center gap-2 cursor-pointer select-none" title="الرجوع للرئيسية">
-            <LogoIcon className="w-7 h-7 text-primary" />
+        <div onClick={handleLogoClick} dir="ltr" className="flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none pl-1" title="الرجوع للرئيسية">
+            <LogoIcon className="w-7 h-7 text-primary flex-shrink-0" />
             <span className="text-xl font-bold text-text-primary tracking-tighter">
                 QRAN<span className={dotColorClass}>.</span>TOP
             </span>
@@ -68,6 +68,12 @@ const Header: React.FC<HeaderProps> = ({
         let scrollDownAccumulator = 0;
 
         const handleScroll = () => {
+            // Keep permanently visible on tablet and computer screens (width >= 768px)
+            if (window.innerWidth >= 768) {
+                setIsSearchVisible(true);
+                return;
+            }
+
             const currentScrollY = window.scrollY;
             
             // If near top, always show
@@ -103,8 +109,18 @@ const Header: React.FC<HeaderProps> = ({
             }
         };
 
+        const handleResize = () => {
+            if (window.innerWidth >= 768) {
+                setIsSearchVisible(true);
+            }
+        };
+
         window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
+        window.addEventListener('resize', handleResize, { passive: true });
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('resize', handleResize);
+        };
     }, []);
     
     // Consume Settings from Context
@@ -221,8 +237,11 @@ const Header: React.FC<HeaderProps> = ({
                         )}
                     </div>
 
-                    {/* Center Group: Dynamic Page Title */}
-                    <div className="flex-grow flex justify-center min-w-0 px-2">
+                    {/* Center Group: Dynamic Page Title & Desktop Search */}
+                    <div className="flex-grow flex items-center justify-center min-w-0 px-4">
+                        <div className="hidden lg:block w-full max-w-md">
+                            <SearchForm onSearch={onSearch} disabled={searchDisabled} initialQuery={searchQuery} />
+                        </div>
                     </div>
                     
                     {/* Left Group: Action buttons and Logo */}
@@ -268,8 +287,8 @@ const Header: React.FC<HeaderProps> = ({
                     </div>
                 </div>
 
-                {/* Row 2: Search Form - Always open and prominent on a separate line */}
-                <div className="pb-3 pt-1.5 border-t border-border-default/10">
+                {/* Row 2: Search Form - Always open and prominent on a separate line (hidden on desktop) */}
+                <div className="lg:hidden pb-3 pt-1.5 border-t border-border-default/10">
                     <div className="w-full max-w-xl mx-auto">
                         <SearchForm onSearch={onSearch} disabled={searchDisabled} initialQuery={searchQuery} />
                     </div>
