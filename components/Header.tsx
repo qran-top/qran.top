@@ -71,7 +71,7 @@ const Header: React.FC<HeaderProps> = ({
             const currentScrollY = window.scrollY;
             
             // If near top, always show
-            if (currentScrollY <= 50) {
+            if (currentScrollY <= 40) {
                 setIsSearchVisible(true);
                 scrollUpAccumulator = 0;
                 scrollDownAccumulator = 0;
@@ -87,7 +87,7 @@ const Header: React.FC<HeaderProps> = ({
                 scrollDownAccumulator += delta;
                 scrollUpAccumulator = 0;
                 
-                if (scrollDownAccumulator > 80) {
+                if (scrollDownAccumulator > 30) {
                     setIsSearchVisible(false);
                     scrollDownAccumulator = 0;
                 }
@@ -96,7 +96,7 @@ const Header: React.FC<HeaderProps> = ({
                 scrollUpAccumulator += Math.abs(delta);
                 scrollDownAccumulator = 0;
 
-                if (scrollUpAccumulator > 80) {
+                if (scrollUpAccumulator > 30) {
                     setIsSearchVisible(true);
                     scrollUpAccumulator = 0;
                 }
@@ -198,7 +198,9 @@ const Header: React.FC<HeaderProps> = ({
     };
 
     return (
-        <header className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md shadow-sm border-b border-border-default transition-all duration-300">
+        <header className={`sticky top-0 z-30 bg-surface/90 backdrop-blur-md shadow-sm border-b border-border-default transition-transform duration-150 ease-out ${
+            isSearchVisible ? 'translate-y-0' : '-translate-y-full md:translate-y-0'
+        }`}>
             <div className="w-full max-w-7xl mx-auto px-4">
                 {/* Row 1: Brand, Title, and Actions */}
                 <div className="flex items-center justify-between h-14 gap-2">
@@ -267,11 +269,7 @@ const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 {/* Row 2: Search Form - Always open and prominent on a separate line */}
-                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                    isSearchVisible 
-                        ? 'max-h-20 opacity-100 pb-3 pt-1.5 border-t border-border-default/10' 
-                        : 'max-h-0 opacity-0 pb-0 pt-0 border-t-transparent pointer-events-none'
-                }`}>
+                <div className="pb-3 pt-1.5 border-t border-border-default/10">
                     <div className="w-full max-w-xl mx-auto">
                         <SearchForm onSearch={onSearch} disabled={searchDisabled} initialQuery={searchQuery} />
                     </div>
