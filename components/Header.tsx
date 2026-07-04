@@ -61,32 +61,46 @@ const Header: React.FC<HeaderProps> = ({
     
     // Auto-hide search bar on scroll down, show on scroll up
     const [isSearchVisible, setIsSearchVisible] = useState(true);
-    const lastScrollY = useRef(0);
 
     useEffect(() => {
+        let lastY = window.scrollY;
+        let scrollUpAccumulator = 0;
+        let scrollDownAccumulator = 0;
+
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
             
             // If near top, always show
-            if (currentScrollY <= 20) {
+            if (currentScrollY <= 50) {
                 setIsSearchVisible(true);
-                lastScrollY.current = currentScrollY;
+                scrollUpAccumulator = 0;
+                scrollDownAccumulator = 0;
+                lastY = currentScrollY;
                 return;
             }
 
-            // Minimum scroll offset to trigger to avoid excessive flickering
-            if (Math.abs(currentScrollY - lastScrollY.current) < 15) {
-                return;
-            }
+            const delta = currentScrollY - lastY;
+            lastY = currentScrollY;
 
-            if (currentScrollY > lastScrollY.current) {
+            if (delta > 0) {
                 // Scrolling down
-                setIsSearchVisible(false);
-            } else {
+                scrollDownAccumulator += delta;
+                scrollUpAccumulator = 0;
+                
+                if (scrollDownAccumulator > 80) {
+                    setIsSearchVisible(false);
+                    scrollDownAccumulator = 0;
+                }
+            } else if (delta < 0) {
                 // Scrolling up
-                setIsSearchVisible(true);
+                scrollUpAccumulator += Math.abs(delta);
+                scrollDownAccumulator = 0;
+
+                if (scrollUpAccumulator > 80) {
+                    setIsSearchVisible(true);
+                    scrollUpAccumulator = 0;
+                }
             }
-            lastScrollY.current = currentScrollY;
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
