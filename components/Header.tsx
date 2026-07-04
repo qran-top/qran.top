@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { MenuIcon, LogoIcon, PlayIcon, SpinnerIcon, WifiOffIcon, BookmarkIcon } from './icons';
 import { QURAN_INDEX } from '../quranIndex';
 import { formatSurahNameForDisplay } from '../utils/text';
@@ -58,6 +58,40 @@ const Header: React.FC<HeaderProps> = ({
     isPlaybackLoading,
 }) => {
     const isOnline = useNetworkStatus();
+    
+    // Auto-hide search bar on scroll down, show on scroll up
+    const [isSearchVisible, setIsSearchVisible] = useState(true);
+    const lastScrollY = useRef(0);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            
+            // If near top, always show
+            if (currentScrollY <= 20) {
+                setIsSearchVisible(true);
+                lastScrollY.current = currentScrollY;
+                return;
+            }
+
+            // Minimum scroll offset to trigger to avoid excessive flickering
+            if (Math.abs(currentScrollY - lastScrollY.current) < 15) {
+                return;
+            }
+
+            if (currentScrollY > lastScrollY.current) {
+                // Scrolling down
+                setIsSearchVisible(false);
+            } else {
+                // Scrolling up
+                setIsSearchVisible(true);
+            }
+            lastScrollY.current = currentScrollY;
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
     
     // Consume Settings from Context
     const { 
@@ -219,7 +253,11 @@ const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 {/* Row 2: Search Form - Always open and prominent on a separate line */}
-                <div className="pb-3 pt-1.5 border-t border-border-default/10">
+                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                    isSearchVisible 
+                        ? 'max-h-20 opacity-100 pb-3 pt-1.5 border-t border-border-default/10' 
+                        : 'max-h-0 opacity-0 pb-0 pt-0 border-t-transparent pointer-events-none'
+                }`}>
                     <div className="w-full max-w-xl mx-auto">
                         <SearchForm onSearch={onSearch} disabled={searchDisabled} initialQuery={searchQuery} />
                     </div>

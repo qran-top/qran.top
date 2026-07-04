@@ -23,22 +23,28 @@ const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({ playlist, currentIndex,
         const audio = audioRef.current;
         if (!audio || !currentAyah?.audio) return;
         
-        // Only update src if it's different to prevent re-loading the same track
-        // We also check against the potential fallback logic (currentAyah.audio or currentAyah.audioSecondary[0])
-        const currentSrc = audio.getAttribute('src');
+        const currentSrcAttr = audio.getAttribute('src');
+        const currentSrcProp = audio.src;
         const primarySrc = currentAyah.audio;
-        
-        // If currentSrc is not the primary and not the secondary (if exists), then we should load primary.
-        // But if currentSrc is already the secondary (due to fallback), we shouldn't force primary unless index changed.
-        
-        // Simpler check: If index changed, we must load primary.
-        // We rely on 'currentIndex' dependency.
-        
-        // When index changes, force primary
-        audio.src = primarySrc;
+        const fallbackSrcs = currentAyah.audioSecondary || [];
+
+        // Check if current source is already primary or one of secondary fallbacks
+        const isSameSrc = currentSrcAttr === primarySrc || currentSrcProp === primarySrc || currentSrcProp.endsWith(primarySrc) ||
+            fallbackSrcs.some(fallback => currentSrcAttr === fallback || currentSrcProp === fallback || currentSrcProp.endsWith(fallback));
+
+        if (!isSameSrc) {
+            audio.src = primarySrc;
+            audio.load();
+        }
 
         if (isPlaying) {
-            audio.play().catch(e => console.error("Audio play failed:", e));
+            audio.play().catch(e => {
+                if (e.name === 'AbortError') {
+                    console.log("Audio play request was interrupted (benign):", e.message);
+                } else {
+                    console.error("Audio play failed:", e);
+                }
+            });
         } else {
             audio.pause();
         }

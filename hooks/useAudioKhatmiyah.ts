@@ -72,9 +72,24 @@ export const useAudioKhatmiyah = (
                 audioUrl = getAudioUrl(currentAyah, audioEditionDetails);
             }
             if (audioUrl && audioRef.current) {
-                audioRef.current.src = audioUrl;
-                audioRef.current.load();
-                if(isPlaying) audioRef.current.play().catch(e => console.error("Play failed", e));
+                const currentSrcAttr = audioRef.current.getAttribute('src');
+                const currentSrcProp = audioRef.current.src;
+                const isSameSrc = currentSrcAttr === audioUrl || currentSrcProp === audioUrl || currentSrcProp.endsWith(audioUrl);
+                
+                if (!isSameSrc) {
+                    audioRef.current.src = audioUrl;
+                    audioRef.current.load();
+                }
+                
+                if (isPlaying) {
+                    audioRef.current.play().catch(e => {
+                        if (e.name === 'AbortError') {
+                            console.log("Audio play request was interrupted (benign):", e.message);
+                        } else {
+                            console.error("Play failed", e);
+                        }
+                    });
+                }
             } else {
                 setIsLoading(false);
                 setIsBuffering(false);
