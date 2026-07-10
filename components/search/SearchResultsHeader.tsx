@@ -2,6 +2,38 @@ import React, { useState } from 'react';
 import type { Ayah } from '../../types';
 import { SparklesIcon } from '../icons';
 
+const SURAH_MUQATTAAT_MAP: Record<number, string> = {
+    2: "الم",
+    3: "الم",
+    7: "المص",
+    10: "الر",
+    11: "الر",
+    12: "الر",
+    13: "المر",
+    14: "الر",
+    15: "الر",
+    19: "كهيعص",
+    20: "طه",
+    26: "طسم",
+    27: "طس",
+    28: "طسم",
+    29: "الم",
+    30: "الم",
+    31: "الم",
+    32: "الم",
+    36: "يس",
+    38: "ص",
+    40: "حم",
+    41: "حم",
+    42: "حم عسق",
+    43: "حم",
+    44: "حم",
+    45: "حم",
+    46: "حم",
+    50: "ق",
+    68: "ن"
+};
+
 interface SearchResultsHeaderProps {
     searchType: 'text' | 'number';
     query: string;
@@ -19,13 +51,15 @@ interface SearchResultsHeaderProps {
     onNewSearch: (query: string) => void;
     isRootSearch?: boolean;
     onToggleRootSearch?: (value: boolean) => void;
+    displayedResults?: Ayah[];
 }
 
 const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
     searchType, query, correctedQuery, displayedResultsCount, resultsCount,
     isSingleWordSearch, generalOccurrences, exactOccurrences, exactMatch,
     setExactMatch, totalOccurrences, onJumpToOccurrence, 
-    cachedAnalysisExists, onNewSearch, isRootSearch = false, onToggleRootSearch
+    cachedAnalysisExists, onNewSearch, isRootSearch = false, onToggleRootSearch,
+    displayedResults = []
 }) => {
     const [jumpToValue, setJumpToValue] = useState('');
     
@@ -41,6 +75,33 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
     const finalQueryForChecks = correctedQuery || query;
     const shouldShowAnalysisButton = finalQueryForChecks.trim().split(/\s+/).filter(Boolean).length === 1 && searchType === 'text';
 
+    const muqattaatInResults = React.useMemo(() => {
+        if (!displayedResults || displayedResults.length === 0) return [];
+        const surahNumbers = Array.from(new Set(displayedResults.map(a => a.surah?.number).filter((n): n is number => !!n)));
+        
+        // Group surah names by their unique muqatta'at letters
+        const groups: Record<string, string[]> = {};
+        for (const num of surahNumbers) {
+            const letters = SURAH_MUQATTAAT_MAP[num];
+            if (letters) {
+                const ayah = displayedResults.find(a => a.surah?.number === num);
+                const surahName = ayah?.surah?.name || `سورة ${num}`;
+                if (!groups[letters]) {
+                    groups[letters] = [];
+                }
+                if (!groups[letters].includes(surahName)) {
+                    groups[letters].push(surahName);
+                }
+            }
+        }
+        
+        return Object.entries(groups).map(([letters, surahs]) => ({
+            letters,
+            surahs,
+            tooltip: `تبدأ بها السور: ${surahs.join('، ')}`
+        }));
+    }, [displayedResults]);
+
     return (
         <div className="mb-4 p-4 bg-surface-subtle rounded-lg border border-border-default">
             {correctedQuery && !isRootSearch && (
@@ -52,7 +113,7 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                 </div>
             )}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex-grow">
+                <div className="flex-1 min-w-0">
                     {searchType === 'text' ? (
                         <h3 className="text-lg font-semibold text-text-secondary">
                             {isRootSearch ? 'نتائج البحث عن جذر الكلمة: ' : 'نتائج البحث عن الكلمات: '}
@@ -105,6 +166,24 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                         </div>
                     )}
                 </div>
+
+                {muqattaatInResults.length > 0 && (
+                    <div className="flex items-center justify-start sm:justify-end flex-shrink-0 w-full sm:w-auto sm:max-w-[45%] bg-primary/5 dark:bg-primary/10 border border-primary/10 dark:border-primary/20 rounded-lg px-2.5 py-1.5 transition-all select-none">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-primary-text-strong font-bold justify-start sm:justify-end">
+                            {muqattaatInResults.map((item, idx) => (
+                                <span key={item.letters} className="inline-flex items-center">
+                                    {idx > 0 && <span className="mx-1 text-text-muted/40 font-normal">-</span>}
+                                    <span 
+                                        className="cursor-help hover:text-primary transition-colors duration-150 decoration-dotted underline decoration-primary/30 underline-offset-2"
+                                        title={item.tooltip}
+                                    >
+                                        {item.letters} <span className="text-primary/80 font-normal text-[10px]">({item.surahs.length})</span>
+                                    </span>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
             {searchType === 'text' && totalOccurrences > 1 && (
                 <div className="mt-3 pt-3 border-t border-border-default flex items-center gap-2 flex-wrap">

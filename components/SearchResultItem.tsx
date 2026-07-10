@@ -23,6 +23,43 @@ interface SearchResultItemProps {
   onOpenPopover: (ayah: Ayah, triggerElement: HTMLElement) => void;
 }
 
+const SURAH_MUQATTAAT_MAP: Record<number, string> = {
+    2: "الم",
+    3: "الم",
+    7: "المص",
+    10: "الر",
+    11: "الر",
+    12: "الر",
+    13: "المر",
+    14: "الر",
+    15: "الر",
+    19: "كهيعص",
+    20: "طه",
+    26: "طسم",
+    27: "طس",
+    28: "طسم",
+    29: "الم",
+    30: "الم",
+    31: "الم",
+    32: "الم",
+    36: "يس",
+    38: "ص",
+    40: "حم",
+    41: "حم",
+    42: "حم عسق",
+    43: "حم",
+    44: "حم",
+    45: "حم",
+    46: "حم",
+    50: "ق",
+    68: "ن"
+};
+
+const getSurahMuqattaat = (surahNumber?: number): string | null => {
+    if (!surahNumber) return null;
+    return SURAH_MUQATTAAT_MAP[surahNumber] || null;
+};
+
 const SearchResultItem: React.FC<SearchResultItemProps> = ({ 
     ayah, queryWords, onNewSearch, displayEdition, displayEditionData, 
     fontSize, fontStyle, searchType, isCurrentlyPlaying, itemRef, pulsingWordIndex,
@@ -137,15 +174,30 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({
             className={`p-4 rounded-xl shadow-sm transition-all duration-300 hover:shadow-lg ${isCurrentlyPlaying ? 'bg-yellow-300/60 dark:bg-yellow-400/30 ring-2 ring-yellow-500' : 'bg-surface-subtle'}`}
         >
             <div className="flex justify-between items-center mb-2 gap-4">
-                 <a
-                    href={`#/surah/${displayAyah.surah?.number}?ayah=${displayAyah.numberInSurah}`}
-                    className="text-primary-text font-bold cursor-pointer rounded-md p-1 -m-1 hover:bg-surface-hover transition-colors"
-                    aria-label={`الانتقال إلى ${displayAyah.surah?.name} الآية ${displayAyah.numberInSurah}`}
-                >
-                    <span className="font-quran-title">{displayAyah.surah?.name} - الآية {displayAyah.numberInSurah}</span>
-                </a>
+                <div className="flex items-center gap-2 flex-wrap">
+                     <a
+                        href={`#/surah/${displayAyah.surah?.number}?ayah=${displayAyah.numberInSurah}`}
+                        className="text-primary-text font-bold cursor-pointer rounded-md p-1 -m-1 hover:bg-surface-hover transition-colors"
+                        aria-label={`الانتقال إلى ${displayAyah.surah?.name} الآية ${displayAyah.numberInSurah}`}
+                    >
+                        <span className="font-quran-title">{displayAyah.surah?.name} - الآية {displayAyah.numberInSurah}</span>
+                    </a>
+                </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
+                    {(() => {
+                        const letters = getSurahMuqattaat(displayAyah.surah?.number);
+                        if (!letters) return null;
+                        return (
+                            <span 
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium bg-primary/5 text-primary border border-primary/10 dark:bg-primary/10 dark:text-primary dark:border-primary/25 transition-all cursor-help select-none"
+                                title={`هذه السورة تبدأ بالأحرف النورانية: ${letters}`}
+                            >
+                                <SparklesIcon className="w-2.5 h-2.5 flex-shrink-0 text-primary/70" />
+                                <span className="font-semibold">{letters}</span>
+                            </span>
+                        );
+                    })()}
                     <button
                         onClick={(e) => onOpenPopover(displayAyah, e.currentTarget)}
                         className="p-2 -m-2 rounded-full text-text-subtle hover:text-primary hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"

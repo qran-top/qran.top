@@ -216,6 +216,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
             cachedAnalysisExists={cachedAnalysisExists} onNewSearch={onNewSearch}
             isRootSearch={isRootSearch}
             onToggleRootSearch={(val) => onNewSearch(query, undefined, undefined, val)}
+            displayedResults={displayedResults}
         />
         
         {displayedResults.length > 0 && (
