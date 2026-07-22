@@ -167,7 +167,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ surahList }) => {
             <main>
                 {stops.length > 0 ? (
                     <div className="space-y-4">
-                        {stops.slice(0, 10).map((stop, index) => {
+                        {stops.map((stop, index) => {
                             const stopSurah = surahList.find(s => s.number === stop.surahNumber);
                             const displayName = stopSurah ? formatSurahNameForDisplay(stopSurah.name) : stop.surahName;
                             const linkUrl = stop.browsingMode === 'page' ? `#/page/${stop.pageNumber}?ayah=${stop.ayahNumber}` : `#/surah/${stop.surahNumber}?ayah=${stop.ayahNumber}`;

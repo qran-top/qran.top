@@ -231,8 +231,8 @@ const Header: React.FC<HeaderProps> = ({
                         </button>
                         <ThemeToggleButton />
                         {!isOnline && (
-                            <div className="flex items-center justify-center p-2 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400" title="أنت غير متصل بالإنترنت. بعض الميزات قد لا تعمل.">
-                                <WifiOffIcon className="w-5 h-5" />
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex-shrink-0" title="أنت غير متصل بالإنترنت (وضع الأوفلاين).">
+                                <WifiOffIcon className="w-4 h-4 text-amber-500" />
                             </div>
                         )}
                     </div>

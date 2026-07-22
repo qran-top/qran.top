@@ -160,21 +160,41 @@ const App: React.FC = () => {
         window.location.reload();
     };
 
+    // --- Intercept Back Button for Active Overlays (SidePanel, Modals) ---
+    useEffect(() => {
+        const handlePopState = () => {
+            if (isSidePanelOpen) {
+                setIsSidePanelOpen(false);
+            } else if (itemToSave) {
+                setItemToSave(null);
+            } else if (externalLinkUrl) {
+                setExternalLinkUrl(null);
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [isSidePanelOpen, itemToSave, externalLinkUrl]);
+
     if (dataError && !isSearchDataReady) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-background text-text-primary p-6 text-center animate-fade-in">
-                <WifiOffIcon className="w-20 h-20 text-text-muted mb-4 opacity-50" />
-                <h2 className="text-2xl font-bold mb-2">تعذر تحميل البيانات</h2>
-                <p className="text-text-secondary mb-6 max-w-md">
-                    يبدو أن هناك مشكلة في الاتصال بالإنترنت. التطبيق يحتاج لتحميل البيانات الأساسية لأول مرة.
-                </p>
-                <button 
-                    onClick={handleRetryLoading}
-                    className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full hover:bg-primary-hover transition-colors shadow-lg"
-                >
-                    <RefreshIcon className="w-5 h-5" />
-                    <span>إعادة المحاولة</span>
-                </button>
+            <div className="flex items-center justify-center min-h-screen bg-background text-text-primary p-4 text-center animate-fade-in" dir="rtl">
+                <div className="max-w-sm w-full mx-auto p-6 rounded-2xl border border-border-default bg-surface shadow-xl flex flex-col items-center">
+                    <div className="p-4 rounded-full bg-amber-500/10 text-amber-500 mb-4">
+                        <WifiOffIcon className="w-12 h-12" />
+                    </div>
+                    <h2 className="text-xl font-bold mb-2 text-text-primary">تعذر تحميل البيانات الأساسية</h2>
+                    <p className="text-sm text-text-secondary mb-6 leading-relaxed">
+                        يبدو أن هناك مشكلة في الاتصال بالإنترنت. يحتاج التطبيق للاتصال بالشبكة عند الفتح لأول مرة لتحميل البيانات.
+                    </p>
+                    <button 
+                        onClick={handleRetryLoading}
+                        className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-primary-hover transition-colors shadow-md text-sm"
+                    >
+                        <RefreshIcon className="w-4 h-4" />
+                        <span>إعادة المحاولة</span>
+                    </button>
+                </div>
             </div>
         );
     }

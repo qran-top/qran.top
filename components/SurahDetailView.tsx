@@ -247,7 +247,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
       
       // Add new stop to front, slice to max 5
       stops.unshift(newStop);
-      stops = stops.slice(0, 5);
+      stops = stops.slice(0, 50);
       
       safeLocalStorage.setItem('qran_reading_stops', JSON.stringify(stops));
     } catch (e) {
@@ -379,6 +379,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
     }
     
     return {
+        surahNumber: firstSurah.number,
         surahName,
         juzNumber,
         markers,
@@ -497,7 +498,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
           });
 
           stops.unshift(newStop);
-          stops = stops.slice(0, 5);
+          stops = stops.slice(0, 50);
           safeLocalStorage.setItem('qran_reading_stops', JSON.stringify(stops));
         }
       } catch (e) {
@@ -530,7 +531,15 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
                     ))}
                     <header className="mushaf-header">
                         <span>{pageInfo?.juzNumber && `الجزء ${pageInfo.juzNumber}`}</span>
-                        <span>{pageInfo?.surahName && `سورة ${pageInfo.surahName}`}</span>
+                        {pageInfo?.surahName && (
+                            <a 
+                                href={`#/surah/${pageInfo.surahNumber}`}
+                                className="hover:text-primary hover:underline transition-colors cursor-pointer"
+                                title={`فتح سورة ${pageInfo.surahName}`}
+                            >
+                                سورة {pageInfo.surahName}
+                            </a>
+                        )}
                     </header>
                     
                     <main dir="rtl" className={`text-text-primary ${quranTextClass} text-justify`}>
@@ -557,7 +566,15 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
                                     {/* Surah Header if start of surah */}
                                     {isStartOfSurah && (
                                         <div className="text-center my-6 bg-surface-subtle/50 border-y border-border-default py-2 rounded-lg">
-                                            <h2 className="font-quran-title text-2xl text-primary-text-strong">{formatSurahNameForDisplay(surahSegment.name)}</h2>
+                                            <a 
+                                                href={`#/surah/${surahSegment.number}`}
+                                                className="inline-block hover:text-primary transition-colors cursor-pointer"
+                                                title={`فتح سورة ${formatSurahNameForDisplay(surahSegment.name)}`}
+                                            >
+                                                <h2 className="font-quran-title text-2xl text-primary-text-strong hover:text-primary">
+                                                    {formatSurahNameForDisplay(surahSegment.name)}
+                                                </h2>
+                                            </a>
                                         </div>
                                     )}
 

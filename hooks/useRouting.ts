@@ -9,7 +9,13 @@ export const useRouting = () => {
         if (!hash || hash === '#/' || hash === '#') {
             const saved = safeLocalStorage.getItem(ROUTE_PERSIST_KEY);
             if (saved && saved !== '#/' && saved !== '#') {
-                window.location.hash = saved;
+                try {
+                    // Seed root history entry before pushing saved route so Android Back button navigates back to Home instead of exiting app
+                    window.history.replaceState({ root: true }, '', '#/');
+                    window.history.pushState(null, '', saved);
+                } catch (e) {
+                    window.location.hash = saved;
+                }
                 return saved;
             }
         }
@@ -32,7 +38,11 @@ export const useRouting = () => {
         }
 
         window.addEventListener('hashchange', handleHashChange, false);
-        return () => window.removeEventListener('hashchange', handleHashChange, false);
+        window.addEventListener('popstate', handleHashChange, false);
+        return () => {
+            window.removeEventListener('hashchange', handleHashChange, false);
+            window.removeEventListener('popstate', handleHashChange, false);
+        };
     }, [handleHashChange]);
 
     const { path, pathParts, queryParams } = useMemo(() => {
